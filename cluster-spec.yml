@@ -1,0 +1,13 @@
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: eks-play-2
+  region: us-east-1
+  version: '1.14'
+
+nodeGroups:
+  - name: workers
+    instanceType: t3.medium
+    minSize: 2
