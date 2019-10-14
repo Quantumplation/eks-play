@@ -32,9 +32,9 @@ type Statistics struct {
 	OutgoingNetworkErrors      int32
 	OutgoingUnknownErrors      int32
 	EOFErrors                  int32
-	TrueECONNRESETErrors 	   int32
-	ECONNREFUSEDErrors	   int32
-	ECONNABORTEDErrors	   int32
+	TrueECONNRESETErrors       int32
+	ECONNREFUSEDErrors         int32
+	ECONNABORTEDErrors         int32
 	ForceClosedErrors          int32
 
 	TotalIncomingRequests int32
@@ -126,8 +126,6 @@ func main() {
 	lock := sync.RWMutex{}
 	stats := Statistics{}
 	stats.Hostname = hostname
-	go printStats(&stats, &lock)
-	go updateStats(&stats, &lock)
 
 	baseURL := fmt.Sprintf("http://%s:%s", host, port)
 	if host == "" || port == "" {
@@ -135,7 +133,12 @@ func main() {
 	}
 	url := fmt.Sprintf("%s/sample", baseURL)
 
+	log.Print("Sleeping for 1m to let things warm up...")
+	time.Sleep(1 * time.Minute)
 	log.Printf("Continually requesting: %s", url)
+
+	go printStats(&stats, &lock)
+	go updateStats(&stats, &lock)
 
 	http.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&stats.TotalIncomingRequests, 1)
