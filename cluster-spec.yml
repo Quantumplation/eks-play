@@ -8,6 +8,10 @@ metadata:
   version: '1.14'
 
 nodeGroups:
-  - name: workers
-    instanceType: t3.medium
+  - name: workers-v2
     minSize: 2
+    maxSize: 2
+    instancesDistribution:
+      instanceTypes: ["m5.8xlarge", "m5.large"]
+      onDemandBaseCapacity: 0
+      onDemandPercentageAboveBaseCapacity: 0

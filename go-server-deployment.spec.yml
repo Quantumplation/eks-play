@@ -5,7 +5,7 @@ metadata:
   labels:
     app: go-server
 spec:
-  replicas: 3
+  replicas: 300
   selector:
     matchLabels:
       app: go-server
@@ -16,5 +16,4 @@ spec:
     spec:
       containers:
       - name: go-server
-        image: busybox:latest
-        command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+        image: 098086232615.dkr.ecr.us-east-1.amazonaws.com/go-server:latest

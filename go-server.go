@@ -1,26 +1,27 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"encoding/json"
 )
 
+// Statistics ...
 type Statistics struct {
 	hostname string
 
-	total_outgoing_requests int
-	successful_outgoing_requests int
-	failed_outgoing_requests int
-	outgoing_http_errors int
-	outgoing_network_errors int
-	outgoing_unknown_errors int
-	econnreset_errors int
+	totalOutgoingRequests      int
+	successfulOutgoingRequests int
+	failedOutgoingRequests     int
+	outgoingHTTPErrors         int
+	outgoingNetworkErrors      int
+	outgoingUnknownErrors      int
+	econnresetErrors           int
 
-	total_incoming_requests int
+	totalIncomingRequests int
 }
 
 func main() {
@@ -33,21 +34,21 @@ func main() {
 	stats := Statistics{}
 	stats.hostname = hostname
 
-	base_url := fmt.Sprintf("http://%s:%s", host, port)
+	baseURL := fmt.Sprintf("http://%s:%s", host, port)
 	if host == "" || port == "" {
-		base_url = "http://localhost:8080"
+		baseURL = "http://localhost:8080"
 	}
-	url := fmt.Sprintf("%s/sample", base_url)
+	url := fmt.Sprintf("%s/sample", baseURL)
 
 	log.Printf("Continually requesting: %s", url)
 
 	http.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
-		stats.total_incoming_requests += 1
+		stats.totalIncomingRequests++
 		fmt.Fprintf(w, "Good")
 	})
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-		b, err := json.Marshal(stats)
+		b, _ := json.Marshal(stats)
 		w.Write(b)
 	})
 
@@ -56,26 +57,26 @@ func main() {
 	}()
 
 	for {
-		stats.total_outgoing_requests += 1
+		stats.totalOutgoingRequests++
 		resp, err := http.Get(url)
 		if err != nil {
 			log.Print(err)
-			stats.failed_outgoing_requests += 1
-			stats.outgoing_network_errors += 1
+			stats.failedOutgoingRequests++
+			stats.outgoingNetworkErrors++
 			continue
 		}
 		_, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Print(err)
-			stats.failed_outgoing_requests += 1
-			stats.outgoing_unknown_errors += 1
+			stats.failedOutgoingRequests++
+			stats.outgoingUnknownErrors++
 			continue
 		}
 		if resp.StatusCode != 200 {
-			stats.failed_outging_requests += 1
-			stats.outgoing_http_errors += 1
+			stats.failedOutgoingRequests++
+			stats.outgoingHTTPErrors++
 		}
-		stats.successful_outgoing_requests += 1
+		stats.successfulOutgoingRequests++
 		resp.Body.Close()
 	}
 }
