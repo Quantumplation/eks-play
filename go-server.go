@@ -27,7 +27,8 @@ type Statistics struct {
 	OutgoingHTTPErrors         int32
 	OutgoingNetworkErrors      int32
 	OutgoingUnknownErrors      int32
-	EconnresetErrors           int32
+	EOFErrors                  int32
+	ForceClosedErrors          int32
 
 	TotalIncomingRequests int32
 }
@@ -109,11 +110,11 @@ func main() {
 	stats := Statistics{}
 	stats.Hostname = hostname
 	go printStats(&stats, &lock)
-	go updateStats(&stats, &lock)
+	//go updateStats(&stats, &lock)
 
 	baseURL := fmt.Sprintf("http://%s:%s", host, port)
 	if host == "" || port == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:8081"
 	}
 	url := fmt.Sprintf("%s/sample", baseURL)
 
