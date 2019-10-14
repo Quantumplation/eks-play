@@ -8,7 +8,8 @@ import (
 func main() {
 	ln, _ := net.Listen("tcp", ":8081")
 	for {
-		_, _ = ln.Accept()
+		conn, _ := ln.Accept()
 		os.Exit(1)
+		conn.Close()
 	}
 }

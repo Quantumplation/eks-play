@@ -1,6 +1,9 @@
 package main
 
 import (
+	"errors"
+	"io"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -71,11 +74,15 @@ func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
 		atomic.AddInt32(&stats.TotalOutgoingRequests, 1)
 		resp, err := http.Get(url)
 		if err != nil {
-			log.Print(err)
 			atomic.AddInt32(&stats.FailedOutgoingRequests, 1)
 			atomic.AddInt32(&stats.OutgoingNetworkErrors, 1)
+			if errors.Unwrap(err) == io.EOF {
+				atomic.AddInt32(&stats.EOFErrors, 1)
+			} else {
+				log.Print(err)
+			}
 			lock.RUnlock()
-			continue
+			return
 		}
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -110,11 +117,11 @@ func main() {
 	stats := Statistics{}
 	stats.Hostname = hostname
 	go printStats(&stats, &lock)
-	//go updateStats(&stats, &lock)
+	go updateStats(&stats, &lock)
 
 	baseURL := fmt.Sprintf("http://%s:%s", host, port)
 	if host == "" || port == "" {
-		baseURL = "http://localhost:8081"
+		baseURL = "http://localhost:8080"
 	}
 	url := fmt.Sprintf("%s/sample", baseURL)
 
