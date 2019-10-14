@@ -7,21 +7,31 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 // Statistics ...
 type Statistics struct {
-	hostname string
+	Hostname string
 
-	totalOutgoingRequests      int
-	successfulOutgoingRequests int
-	failedOutgoingRequests     int
-	outgoingHTTPErrors         int
-	outgoingNetworkErrors      int
-	outgoingUnknownErrors      int
-	econnresetErrors           int
+	TotalOutgoingRequests      int
+	SuccessfulOutgoingRequests int
+	FailedOutgoingRequests     int
+	OutgoingHTTPErrors         int
+	OutgoingNetworkErrors      int
+	OutgoingUnknownErrors      int
+	EconnresetErrors           int
 
-	totalIncomingRequests int
+	TotalIncomingRequests int
+}
+
+func printStats(stats *Statistics) {
+	for {
+		b, _ := json.MarshalIndent(stats, "  ", "\t")
+		log.Print("Statistics: ")
+		log.Printf("%s", string(b))
+		time.Sleep(5 * time.Second)
+	}
 }
 
 func main() {
@@ -32,7 +42,8 @@ func main() {
 	port := os.Getenv("GO_SERVICE_SERVICE_PORT")
 
 	stats := Statistics{}
-	stats.hostname = hostname
+	stats.Hostname = hostname
+	go printStats(&stats)
 
 	baseURL := fmt.Sprintf("http://%s:%s", host, port)
 	if host == "" || port == "" {
@@ -43,7 +54,7 @@ func main() {
 	log.Printf("Continually requesting: %s", url)
 
 	http.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
-		stats.totalIncomingRequests++
+		stats.TotalIncomingRequests++
 		fmt.Fprintf(w, "Good")
 	})
 
@@ -57,26 +68,26 @@ func main() {
 	}()
 
 	for {
-		stats.totalOutgoingRequests++
+		stats.TotalOutgoingRequests++
 		resp, err := http.Get(url)
 		if err != nil {
 			log.Print(err)
-			stats.failedOutgoingRequests++
-			stats.outgoingNetworkErrors++
+			stats.FailedOutgoingRequests++
+			stats.OutgoingNetworkErrors++
 			continue
 		}
 		_, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Print(err)
-			stats.failedOutgoingRequests++
-			stats.outgoingUnknownErrors++
+			stats.FailedOutgoingRequests++
+			stats.OutgoingUnknownErrors++
 			continue
 		}
 		if resp.StatusCode != 200 {
-			stats.failedOutgoingRequests++
-			stats.outgoingHTTPErrors++
+			stats.FailedOutgoingRequests++
+			stats.OutgoingHTTPErrors++
 		}
-		stats.successfulOutgoingRequests++
+		stats.SuccessfulOutgoingRequests++
 		resp.Body.Close()
 	}
 }
