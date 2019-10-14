@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"io"
+	"syscall"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -31,6 +32,9 @@ type Statistics struct {
 	OutgoingNetworkErrors      int32
 	OutgoingUnknownErrors      int32
 	EOFErrors                  int32
+	TrueECONNRESETErrors 	   int32
+	ECONNREFUSEDErrors	   int32
+	ECONNABORTEDErrors	   int32
 	ForceClosedErrors          int32
 
 	TotalIncomingRequests int32
@@ -74,15 +78,21 @@ func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
 		atomic.AddInt32(&stats.TotalOutgoingRequests, 1)
 		resp, err := http.Get(url)
 		if err != nil {
+			eb, _ := json.MarshalIndent(err, "", "\t")
+			log.Printf("%s", string(eb))
 			atomic.AddInt32(&stats.FailedOutgoingRequests, 1)
 			atomic.AddInt32(&stats.OutgoingNetworkErrors, 1)
-			if errors.Unwrap(err) == io.EOF {
+			if errors.Is(err, io.EOF) {
 				atomic.AddInt32(&stats.EOFErrors, 1)
-			} else {
-				log.Print(err)
+			} else if errors.Is(err, syscall.ECONNRESET) {
+				atomic.AddInt32(&stats.TrueECONNRESETErrors, 1)
+			} else if errors.Is(err, syscall.ECONNREFUSED) {
+				atomic.AddInt32(&stats.ECONNREFUSEDErrors, 1)
+			} else if errors.Is(err, syscall.ECONNABORTED) {
+				atomic.AddInt32(&stats.ECONNABORTEDErrors, 1)
 			}
 			lock.RUnlock()
-			return
+			continue
 		}
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -121,7 +131,7 @@ func main() {
 
 	baseURL := fmt.Sprintf("http://%s:%s", host, port)
 	if host == "" || port == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:8081"
 	}
 	url := fmt.Sprintf("%s/sample", baseURL)
 
