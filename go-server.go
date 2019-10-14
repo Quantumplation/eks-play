@@ -42,26 +42,24 @@ type Statistics struct {
 }
 
 func updateStats(stats *Statistics, lock *sync.RWMutex) {
-	/*
-		for {
-			time.Sleep(1 * time.Minute)
-			sess := session.Must(session.NewSession(&aws.Config{
-				Region: aws.String("us-east-1")},
-			))
-			svc := dynamodb.New(sess)
-			lock.Lock()
-			av, _ := dynamodbattribute.MarshalMap(stats)
-			lock.Unlock()
-			input := &dynamodb.PutItemInput{
-				Item:      av,
-				TableName: aws.String("eks-play-statistics"),
-			}
-			_, err := svc.PutItem(input)
-			if err != nil {
-				log.Printf("Couldn't update statistics: %v", err)
-			}
+	for {
+		time.Sleep(1 * time.Minute)
+		sess := session.Must(session.NewSession(&aws.Config{
+			Region: aws.String("us-east-1")},
+		))
+		svc := dynamodb.New(sess)
+		lock.Lock()
+		av, _ := dynamodbattribute.MarshalMap(stats)
+		lock.Unlock()
+		input := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String("eks-play-statistics"),
 		}
-	*/
+		_, err := svc.PutItem(input)
+		if err != nil {
+			log.Printf("Couldn't update statistics: %v", err)
+		}
+	}
 }
 
 func printStats(stats *Statistics, lock *sync.RWMutex) {
@@ -169,7 +167,7 @@ func main() {
 	url := fmt.Sprintf("%s/sample", baseURL)
 
 	log.Print("Sleeping for 1m to let things warm up...")
-	//time.Sleep(1 * time.Minute)
+	time.Sleep(1 * time.Minute)
 	log.Printf("Continually requesting: %s", url)
 
 	go printStats(&stats, &lock)
