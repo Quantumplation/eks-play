@@ -5,12 +5,6 @@ import (
 	"io"
 	"syscall"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/google/uuid"
-
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -20,6 +14,12 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/google/uuid"
 )
 
 // Statistics ...
@@ -42,24 +42,26 @@ type Statistics struct {
 }
 
 func updateStats(stats *Statistics, lock *sync.RWMutex) {
-	for {
-		time.Sleep(1 * time.Minute)
-		sess := session.Must(session.NewSession(&aws.Config{
-			Region: aws.String("us-east-1")},
-		))
-		svc := dynamodb.New(sess)
-		lock.Lock()
-		av, _ := dynamodbattribute.MarshalMap(stats)
-		lock.Unlock()
-		input := &dynamodb.PutItemInput{
-			Item:      av,
-			TableName: aws.String("eks-play-statistics"),
+	/*
+		for {
+			time.Sleep(1 * time.Minute)
+			sess := session.Must(session.NewSession(&aws.Config{
+				Region: aws.String("us-east-1")},
+			))
+			svc := dynamodb.New(sess)
+			lock.Lock()
+			av, _ := dynamodbattribute.MarshalMap(stats)
+			lock.Unlock()
+			input := &dynamodb.PutItemInput{
+				Item:      av,
+				TableName: aws.String("eks-play-statistics"),
+			}
+			_, err := svc.PutItem(input)
+			if err != nil {
+				log.Printf("Couldn't update statistics: %v", err)
+			}
 		}
-		_, err := svc.PutItem(input)
-		if err != nil {
-			log.Printf("Couldn't update statistics: %v", err)
-		}
-	}
+	*/
 }
 
 func printStats(stats *Statistics, lock *sync.RWMutex) {
@@ -73,17 +75,28 @@ func printStats(stats *Statistics, lock *sync.RWMutex) {
 	}
 }
 
-func recordError(e interface{}) {
-	eb, _ := json.MarshalIndent(e, "", "\t")
+func recordError(e error) {
+	// Go through a lot of effort to preserve as much info as we can
+	eb, _ := json.Marshal(e)
 	log.Printf("Unrecognized error: %s", string(eb))
+	log.Print(fmt.Errorf("Unrecognized error: %w", e))
+
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region: aws.String("us-east-1")},
 	))
 	svc := dynamodb.New(sess)
+
 	av, _ := dynamodbattribute.MarshalMap(e)
 	id, _ := uuid.NewRandom()
+
 	idm, _ := dynamodbattribute.Marshal(id.String())
+	ej, _ := dynamodbattribute.Marshal(string(eb))
+	et, _ := dynamodbattribute.Marshal(fmt.Errorf("%w", e))
+
 	av["Id"] = idm
+	av["ErrorJson"] = ej
+	av["ErrorText"] = et
+
 	input := &dynamodb.PutItemInput{
 		Item:      av,
 		TableName: aws.String("eks-play-errors"),
@@ -99,8 +112,6 @@ func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
 		lock.RLock()
 		atomic.AddInt32(&stats.TotalOutgoingRequests, 1)
 		resp, err := http.Get(url)
-		// Dummy unrecognized error
-		err = fmt.Errorf("Some dummy error wrapping: %w", syscall.EWOULDBLOCK)
 		if err != nil {
 			atomic.AddInt32(&stats.FailedOutgoingRequests, 1)
 			atomic.AddInt32(&stats.OutgoingNetworkErrors, 1)
@@ -158,7 +169,7 @@ func main() {
 	url := fmt.Sprintf("%s/sample", baseURL)
 
 	log.Print("Sleeping for 1m to let things warm up...")
-	time.Sleep(1 * time.Minute)
+	//time.Sleep(1 * time.Minute)
 	log.Printf("Continually requesting: %s", url)
 
 	go printStats(&stats, &lock)
