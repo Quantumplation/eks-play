@@ -99,6 +99,8 @@ func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
 		lock.RLock()
 		atomic.AddInt32(&stats.TotalOutgoingRequests, 1)
 		resp, err := http.Get(url)
+		// Dummy unrecognized error
+		err = fmt.Errorf("Some dummy error wrapping: %w", syscall.EWOULDBLOCK)
 		if err != nil {
 			atomic.AddInt32(&stats.FailedOutgoingRequests, 1)
 			atomic.AddInt32(&stats.OutgoingNetworkErrors, 1)
