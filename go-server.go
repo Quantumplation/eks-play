@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/google/uuid"
 
 	"encoding/json"
 	"fmt"
@@ -72,14 +73,33 @@ func printStats(stats *Statistics, lock *sync.RWMutex) {
 	}
 }
 
+func recordError(e interface{}) {
+	eb, _ := json.MarshalIndent(e, "", "\t")
+	log.Printf("Unrecognized error: %s", string(eb))
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String("us-east-1")},
+	))
+	svc := dynamodb.New(sess)
+	av, _ := dynamodbattribute.MarshalMap(e)
+	id, _ := uuid.NewRandom()
+	idm, _ := dynamodbattribute.Marshal(id.String())
+	av["Id"] = idm
+	input := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String("eks-play-errors"),
+	}
+	_, err := svc.PutItem(input)
+	if err != nil {
+		log.Printf("Couldn't insert error: %v", err)
+	}
+}
+
 func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
 	for {
 		lock.RLock()
 		atomic.AddInt32(&stats.TotalOutgoingRequests, 1)
 		resp, err := http.Get(url)
 		if err != nil {
-			eb, _ := json.MarshalIndent(err, "", "\t")
-			log.Printf("%s", string(eb))
 			atomic.AddInt32(&stats.FailedOutgoingRequests, 1)
 			atomic.AddInt32(&stats.OutgoingNetworkErrors, 1)
 			if errors.Is(err, io.EOF) {
@@ -90,6 +110,8 @@ func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
 				atomic.AddInt32(&stats.ECONNREFUSEDErrors, 1)
 			} else if errors.Is(err, syscall.ECONNABORTED) {
 				atomic.AddInt32(&stats.ECONNABORTEDErrors, 1)
+			} else {
+				recordError(err)
 			}
 			lock.RUnlock()
 			continue
