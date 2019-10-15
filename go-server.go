@@ -73,7 +73,7 @@ func printStats(stats *Statistics, lock *sync.RWMutex) {
 	}
 }
 
-func recordError(e error) {
+func recordError(host string, e error) {
 	// Go through a lot of effort to preserve as much info as we can
 	eb, _ := json.Marshal(e)
 	log.Printf("Unrecognized error: %s", string(eb))
@@ -87,11 +87,13 @@ func recordError(e error) {
 	av, _ := dynamodbattribute.MarshalMap(e)
 	id, _ := uuid.NewRandom()
 
+	h, _ := dynamodbattribute.Marshal(host)
 	idm, _ := dynamodbattribute.Marshal(id.String())
 	ej, _ := dynamodbattribute.Marshal(string(eb))
-	et, _ := dynamodbattribute.Marshal(fmt.Errorf("%w", e))
+	et, _ := dynamodbattribute.Marshal(e.Error())
 
 	av["Id"] = idm
+	av["Host"] = h
 	av["ErrorJson"] = ej
 	av["ErrorText"] = et
 
