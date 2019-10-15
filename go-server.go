@@ -124,7 +124,7 @@ func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
 			} else if errors.Is(err, syscall.ECONNABORTED) {
 				atomic.AddInt32(&stats.ECONNABORTEDErrors, 1)
 			} else {
-				recordError(stats.Hostnamem, err)
+				recordError(stats.Hostname, err)
 			}
 			lock.RUnlock()
 			continue
