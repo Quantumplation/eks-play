@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"runtime"
@@ -208,8 +209,8 @@ func main() {
 		log.Fatal(http.ListenAndServe(":8080", nil))
 	}()
 
-	log.Print("Sleeping for 1m to let things warm up...")
-	time.Sleep(1 * time.Minute)
+	log.Print("Sleeping for some random time to let things warm up...")
+	time.Sleep(20*time.Second + time.Duration(rand.Intn(60))*time.Second)
 	log.Printf("Continually requesting: %s", url)
 
 	go updateStats(&stats, &lock)
