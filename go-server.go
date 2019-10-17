@@ -109,9 +109,17 @@ func recordError(host string, e error) {
 
 func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
 	for {
+		respCh := make(chan *http.Response)
+		errCh := make(chan error)
 		lock.RLock()
 		atomic.AddInt32(&stats.TotalOutgoingRequests, 1)
-		resp, err := http.Get(url)
+		go func() {
+			resp, err := http.Get(url)
+			respCh <- resp
+			errCh <- err
+		}()
+		resp := <-respCh
+		err := <-errCh
 		if err != nil {
 			atomic.AddInt32(&stats.FailedOutgoingRequests, 1)
 			atomic.AddInt32(&stats.OutgoingNetworkErrors, 1)
@@ -191,7 +199,7 @@ func main() {
 		log.Fatal(http.ListenAndServe(":8080", nil))
 	}()
 
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 10; i++ {
 		go doRequestLoop(url, &stats, &lock)
 	}
 	for {
