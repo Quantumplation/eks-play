@@ -164,7 +164,13 @@ func main() {
 	stats := Statistics{}
 	stats.Hostname = hostname
 
-	baseURL := "http://go-service:80"
+	host := os.Getenv("GO_SERVICE_SERVICE_HOST")
+	port := os.Getenv("GO_SERVICE_SERVICE_PORT")
+
+	baseURL := fmt.Sprintf("http://%s:%s", host, port)
+	if host == "" || port == "" {
+		baseURL = "http://localhost:8080"
+	}
 	url := fmt.Sprintf("%s/sample", baseURL)
 
 	http.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
