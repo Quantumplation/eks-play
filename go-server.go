@@ -42,33 +42,30 @@ type Statistics struct {
 }
 
 func updateStats(stats *Statistics, lock *sync.RWMutex) {
+	counter := 0
 	for {
 		sess := session.Must(session.NewSession(&aws.Config{
 			Region: aws.String("us-east-1")},
 		))
 		svc := dynamodb.New(sess)
 		lock.Lock()
+		b, _ := json.MarshalIndent(stats, "  ", "\t")
 		av, _ := dynamodbattribute.MarshalMap(stats)
 		lock.Unlock()
 		input := &dynamodb.PutItemInput{
 			Item:      av,
 			TableName: aws.String("eks-play-statistics"),
 		}
-		_, err := svc.PutItem(input)
-		if err != nil {
-			log.Printf("Couldn't update statistics: %v", err)
-		}
-		time.Sleep(1 * time.Minute)
-	}
-}
-
-func printStats(stats *Statistics, lock *sync.RWMutex) {
-	for {
-		lock.Lock()
-		b, _ := json.MarshalIndent(stats, "  ", "\t")
-		lock.Unlock()
-		log.Print("Statistics: ")
+		log.Print("Statistics:")
 		log.Printf("%s", string(b))
+		if counter%20 == 0 {
+			log.Print("Saving...")
+			_, err := svc.PutItem(input)
+			if err != nil {
+				log.Printf("Couldn't update statistics: %v", err)
+			}
+		}
+		counter++
 		time.Sleep(5 * time.Second)
 	}
 }
@@ -190,7 +187,6 @@ func main() {
 	time.Sleep(1 * time.Minute)
 	log.Printf("Continually requesting: %s", url)
 
-	go printStats(&stats, &lock)
 	go updateStats(&stats, &lock)
 
 	for i := 0; i < 10; i++ {
