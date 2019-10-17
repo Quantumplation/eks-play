@@ -67,6 +67,8 @@ func updateStats(stats *Statistics, lock *sync.RWMutex) {
 			_, err := svc.PutItem(input)
 			if err != nil {
 				log.Printf("Couldn't update statistics: %v", err)
+			} else {
+				log.Print("Saved")
 			}
 		}
 		counter++
