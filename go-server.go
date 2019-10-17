@@ -43,7 +43,6 @@ type Statistics struct {
 
 func updateStats(stats *Statistics, lock *sync.RWMutex) {
 	for {
-		time.Sleep(1 * time.Minute)
 		sess := session.Must(session.NewSession(&aws.Config{
 			Region: aws.String("us-east-1")},
 		))
@@ -59,6 +58,7 @@ func updateStats(stats *Statistics, lock *sync.RWMutex) {
 		if err != nil {
 			log.Printf("Couldn't update statistics: %v", err)
 		}
+		time.Sleep(1 * time.Minute)
 	}
 }
 
@@ -163,17 +163,11 @@ func main() {
 	hostname := os.Getenv("HOSTNAME")
 	log.Printf("%s started...", hostname)
 
-	host := os.Getenv("GO_SERVICE_SERVICE_HOST")
-	port := os.Getenv("GO_SERVICE_SERVICE_PORT")
-
 	lock := sync.RWMutex{}
 	stats := Statistics{}
 	stats.Hostname = hostname
 
-	baseURL := fmt.Sprintf("http://%s:%s", host, port)
-	if host == "" || port == "" {
-		baseURL = "http://localhost:8081"
-	}
+	baseURL := "http://go-service:80"
 	url := fmt.Sprintf("%s/sample", baseURL)
 
 	http.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
