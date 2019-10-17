@@ -1,18 +1,18 @@
 package main
 
 import (
-	"errors"
-	"io"
-	"syscall"
-
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -21,6 +21,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/google/uuid"
 )
+
+// ENABLEDYNAMO Whether to enable dynamo
+const ENABLEDYNAMO = true
 
 // Statistics ...
 type Statistics struct {
@@ -44,22 +47,23 @@ type Statistics struct {
 func updateStats(stats *Statistics, lock *sync.RWMutex) {
 	counter := 0
 	for {
-		sess := session.Must(session.NewSession(&aws.Config{
-			Region: aws.String("us-east-1")},
-		))
-		svc := dynamodb.New(sess)
 		lock.Lock()
 		b, _ := json.MarshalIndent(stats, "  ", "\t")
 		av, _ := dynamodbattribute.MarshalMap(stats)
 		lock.Unlock()
-		input := &dynamodb.PutItemInput{
-			Item:      av,
-			TableName: aws.String("eks-play-statistics"),
-		}
+
 		log.Print("Statistics:")
 		log.Printf("%s", string(b))
-		if counter%20 == 0 {
+		if ENABLEDYNAMO && counter%20 == 0 {
 			log.Print("Saving...")
+			sess := session.Must(session.NewSession(&aws.Config{
+				Region: aws.String("us-east-1")},
+			))
+			svc := dynamodb.New(sess)
+			input := &dynamodb.PutItemInput{
+				Item:      av,
+				TableName: aws.String("eks-play-statistics"),
+			}
 			_, err := svc.PutItem(input)
 			if err != nil {
 				log.Printf("Couldn't update statistics: %v", err)
@@ -104,19 +108,17 @@ func recordError(host string, e error) {
 	}
 }
 
-func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
+type result struct {
+	resp *http.Response
+	err  error
+}
+
+func doResponseLoop(ch chan result, stats *Statistics, lock *sync.RWMutex) {
 	for {
-		respCh := make(chan *http.Response)
-		errCh := make(chan error)
+		res := <-ch
+		resp := res.resp
+		err := res.err
 		lock.RLock()
-		atomic.AddInt32(&stats.TotalOutgoingRequests, 1)
-		go func() {
-			resp, err := http.Get(url)
-			respCh <- resp
-			errCh <- err
-		}()
-		resp := <-respCh
-		err := <-errCh
 		if err != nil {
 			atomic.AddInt32(&stats.FailedOutgoingRequests, 1)
 			atomic.AddInt32(&stats.OutgoingNetworkErrors, 1)
@@ -152,7 +154,18 @@ func doRequestLoop(url string, stats *Statistics, lock *sync.RWMutex) {
 		atomic.AddInt32(&stats.SuccessfulOutgoingRequests, 1)
 		lock.RUnlock()
 		resp.Body.Close()
-		time.Sleep(0)
+		runtime.Gosched()
+	}
+}
+
+func doRequestLoop(url string, ch chan result, stats *Statistics, lock *sync.RWMutex) {
+	for {
+		lock.RLock()
+		atomic.AddInt32(&stats.TotalOutgoingRequests, 1)
+		lock.RUnlock()
+		resp, err := http.Get(url)
+		ch <- result{resp, err}
+		runtime.Gosched()
 	}
 }
 
@@ -174,8 +187,10 @@ func main() {
 	url := fmt.Sprintf("%s/sample", baseURL)
 
 	http.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
+		lock.RLock()
 		atomic.AddInt32(&stats.TotalIncomingRequests, 1)
-		fmt.Fprintf(w, "Good")
+		lock.RUnlock()
+		fmt.Fprintf(w, "")
 	})
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
@@ -190,14 +205,19 @@ func main() {
 	}()
 
 	log.Print("Sleeping for 1m to let things warm up...")
-	time.Sleep(1 * time.Minute)
+	//time.Sleep(1 * time.Minute)
 	log.Printf("Continually requesting: %s", url)
 
 	go updateStats(&stats, &lock)
 
-	for i := 0; i < 10; i++ {
-		go doRequestLoop(url, &stats, &lock)
+	parallelism := 1000
+	ch := make(chan result, parallelism)
+
+	for i := 0; i < parallelism; i++ {
+		go doRequestLoop(url, ch, &stats, &lock)
 	}
+	go doResponseLoop(ch, &stats, &lock)
+
 	for {
 		time.Sleep(1 * time.Minute)
 	}
