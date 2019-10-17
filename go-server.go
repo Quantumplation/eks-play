@@ -79,32 +79,34 @@ func recordError(host string, e error) {
 	eb, _ := json.Marshal(e)
 	log.Printf("Unrecognized error: %s", string(eb))
 	log.Print(fmt.Errorf("Unrecognized error: %w", e))
+	if ENABLEDYNAMO {
 
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1")},
-	))
-	svc := dynamodb.New(sess)
+		sess := session.Must(session.NewSession(&aws.Config{
+			Region: aws.String("us-east-1")},
+		))
+		svc := dynamodb.New(sess)
 
-	av, _ := dynamodbattribute.MarshalMap(e)
-	id, _ := uuid.NewRandom()
+		av, _ := dynamodbattribute.MarshalMap(e)
+		id, _ := uuid.NewRandom()
 
-	h, _ := dynamodbattribute.Marshal(host)
-	idm, _ := dynamodbattribute.Marshal(id.String())
-	ej, _ := dynamodbattribute.Marshal(string(eb))
-	et, _ := dynamodbattribute.Marshal(e.Error())
+		h, _ := dynamodbattribute.Marshal(host)
+		idm, _ := dynamodbattribute.Marshal(id.String())
+		ej, _ := dynamodbattribute.Marshal(string(eb))
+		et, _ := dynamodbattribute.Marshal(e.Error())
 
-	av["Id"] = idm
-	av["Host"] = h
-	av["ErrorJson"] = ej
-	av["ErrorText"] = et
+		av["Id"] = idm
+		av["Host"] = h
+		av["ErrorJson"] = ej
+		av["ErrorText"] = et
 
-	input := &dynamodb.PutItemInput{
-		Item:      av,
-		TableName: aws.String("eks-play-errors"),
-	}
-	_, err := svc.PutItem(input)
-	if err != nil {
-		log.Printf("Couldn't insert error: %v", err)
+		input := &dynamodb.PutItemInput{
+			Item:      av,
+			TableName: aws.String("eks-play-errors"),
+		}
+		_, err := svc.PutItem(input)
+		if err != nil {
+			log.Printf("Couldn't insert error: %v", err)
+		}
 	}
 }
 
@@ -205,12 +207,12 @@ func main() {
 	}()
 
 	log.Print("Sleeping for 1m to let things warm up...")
-	//time.Sleep(1 * time.Minute)
+	time.Sleep(1 * time.Minute)
 	log.Printf("Continually requesting: %s", url)
 
 	go updateStats(&stats, &lock)
 
-	parallelism := 1000
+	parallelism := 300
 	ch := make(chan result, parallelism)
 
 	for i := 0; i < parallelism; i++ {
