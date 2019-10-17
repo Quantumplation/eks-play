@@ -176,13 +176,6 @@ func main() {
 	}
 	url := fmt.Sprintf("%s/sample", baseURL)
 
-	log.Print("Sleeping for 1m to let things warm up...")
-	time.Sleep(1 * time.Minute)
-	log.Printf("Continually requesting: %s", url)
-
-	go printStats(&stats, &lock)
-	go updateStats(&stats, &lock)
-
 	http.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&stats.TotalIncomingRequests, 1)
 		fmt.Fprintf(w, "Good")
@@ -198,6 +191,13 @@ func main() {
 	go func() {
 		log.Fatal(http.ListenAndServe(":8080", nil))
 	}()
+
+	log.Print("Sleeping for 1m to let things warm up...")
+	time.Sleep(1 * time.Minute)
+	log.Printf("Continually requesting: %s", url)
+
+	go printStats(&stats, &lock)
+	go updateStats(&stats, &lock)
 
 	for i := 0; i < 10; i++ {
 		go doRequestLoop(url, &stats, &lock)
