@@ -191,6 +191,10 @@ func main() {
 	}
 	url := fmt.Sprintf("%s/sample", baseURL)
 
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "")
+	})
+
 	http.HandleFunc("/sample", func(w http.ResponseWriter, r *http.Request) {
 		lock.RLock()
 		atomic.AddInt32(&stats.TotalIncomingRequests, 1)
