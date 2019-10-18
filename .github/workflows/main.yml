@@ -12,7 +12,7 @@ jobs:
       - name: Build image
         run: docker build --tag go-server:latest .
       - name: Push to ECR
-        uses: jwalton/gh-ecr-push
+        uses: jwalton/gh-ecr-push@v1
         with:
           access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
