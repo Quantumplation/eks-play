@@ -222,7 +222,7 @@ func main() {
 
 	go updateStats(&stats, &lock)
 
-	parallelism := 300
+	parallelism := 1
 	ch := make(chan result, parallelism)
 
 	for i := 0; i < parallelism; i++ {
