@@ -12,6 +12,7 @@ jobs:
       - name: Build image
         run: docker build --tag go-server .
       - name: Login to ECR
+        id: ecr-login
         uses: jwalton/gh-ecr-login@v1
         with:
           access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -19,5 +20,5 @@ jobs:
           region: us-east-1
       - name: Push to ECR
         run: |
-          docker tag go-server:latest ${{ steps.ecr.outputs.account }}.dkr.ecr.us-east-1.amazonaws.com/go-server:latest
-          docker push ${{ steps.ecr.outputs.account }}.dkr.ecr.us-east-1.amazonaws.com/go-server:latest
+          docker tag go-server:latest ${{ steps.ecr-login.outputs.account }}.dkr.ecr.us-east-1.amazonaws.com/go-server:latest
+          docker push ${{ steps.ecr-login.outputs.account }}.dkr.ecr.us-east-1.amazonaws.com/go-server:latest
