@@ -10,11 +10,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@master
       - name: Build image
-        run: docker build --tag go-server:latest .
-      - name: Push to ECR
-        uses: jwalton/gh-ecr-push@v1
+        run: docker build --tag go-server .
+      - name: Login to ECR
+        uses: jwalton/gh-ecr-login@v1
         with:
           access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           region: us-east-1
-          image: go-server:latest
+      - name: Push to ECR
+        run: |
+          docker tag go-server:latest ${{ steps.ecr.outputs.account }}.dkr.ecr.us-east-1.amazonaws.com/go-server:latest
+          docker push ${{ steps.ecr.outputs.account }}.dkr.ecr.us-east-1.amazonaws.com/go-server:latest
