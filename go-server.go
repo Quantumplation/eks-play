@@ -58,8 +58,8 @@ func updateStats(stats *Statistics, lock *sync.RWMutex) {
 		log.Printf("%s", string(b))
 		if ENABLEDYNAMO && counter%20 == 0 {
 			log.Print("Saving...")
-			sess := session.Must(session.NewSession(&aws.Config{
-				Region: aws.String("us-east-1")},
+			sess := session.Must(session.NewSession(
+				aws.NewConfig().WithLogLevel(aws.LogDebug).WithRegion("us-east-1"),
 			))
 			svc := dynamodb.New(sess)
 			input := &dynamodb.PutItemInput{
