@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -66,9 +65,7 @@ func updateStats(stats *Statistics, lock *sync.RWMutex) {
 				Item:      av,
 				TableName: aws.String("eks-play-statistics"),
 			}
-			ctx, cancelFn := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancelFn()
-			_, err := svc.PutItemWithContext(ctx, input)
+			_, err := svc.PutItem(input)
 			if err != nil {
 				log.Printf("Couldn't update statistics: %v", err)
 			} else {
