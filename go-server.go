@@ -56,7 +56,7 @@ func updateStats(stats *Statistics, lock *sync.RWMutex) {
 
 		log.Print("Statistics:")
 		log.Printf("%s", string(b))
-		if ENABLEDYNAMO && counter%20 == 0 {
+		if ENABLEDYNAMO && counter%10 == 0 {
 			log.Print("Saving...")
 			sess := session.Must(session.NewSession(
 				aws.NewConfig().WithRegion("us-east-1"),
