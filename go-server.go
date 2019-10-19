@@ -85,8 +85,8 @@ func recordError(host string, e error) {
 	log.Print(fmt.Errorf("Unrecognized error: %w", e))
 	if ENABLEDYNAMO {
 
-		sess := session.Must(session.NewSession(&aws.Config{
-			Region: aws.String("us-east-1")},
+		sess := session.Must(session.NewSession(
+			aws.NewConfig().WithRegion("us-east-1"),
 		))
 		svc := dynamodb.New(sess)
 
