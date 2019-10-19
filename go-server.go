@@ -28,7 +28,8 @@ const ENABLEDYNAMO = true
 
 // Statistics ...
 type Statistics struct {
-	Hostname string
+	Hostname  string
+	StartTime string
 
 	TotalOutgoingRequests      int32
 	SuccessfulOutgoingRequests int32
@@ -58,7 +59,7 @@ func updateStats(stats *Statistics, lock *sync.RWMutex) {
 		if ENABLEDYNAMO && counter%20 == 0 {
 			log.Print("Saving...")
 			sess := session.Must(session.NewSession(
-				aws.NewConfig().WithLogLevel(aws.LogDebug).WithRegion("us-east-1"),
+				aws.NewConfig().WithRegion("us-east-1"),
 			))
 			svc := dynamodb.New(sess)
 			input := &dynamodb.PutItemInput{
@@ -216,6 +217,7 @@ func main() {
 	log.Print("Sleeping for some random time to let things warm up...")
 	time.Sleep(20*time.Second + time.Duration(rand.Intn(60))*time.Second)
 	log.Printf("Continually requesting: %s", url)
+	stats.StartTime = time.Now().String()
 
 	go updateStats(&stats, &lock)
 
