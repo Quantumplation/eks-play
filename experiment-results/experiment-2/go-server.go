@@ -28,10 +28,8 @@ const ENABLEDYNAMO = true
 
 // Statistics ...
 type Statistics struct {
-	Hostname       string
-	ExperimentName string
-	StartTime      string
-	LastUpdate     string
+	Hostname  string
+	StartTime string
 
 	TotalOutgoingRequests      int32
 	SuccessfulOutgoingRequests int32
@@ -52,7 +50,6 @@ func updateStats(stats *Statistics, lock *sync.RWMutex) {
 	counter := 0
 	for {
 		lock.Lock()
-		stats.LastUpdate = time.Now().String()
 		b, _ := json.MarshalIndent(stats, "  ", "\t")
 		av, _ := dynamodbattribute.MarshalMap(stats)
 		lock.Unlock()
@@ -180,13 +177,11 @@ func doRequestLoop(url string, ch chan result, stats *Statistics, lock *sync.RWM
 
 func main() {
 	hostname := os.Getenv("HOSTNAME")
-	experiment := os.Getenv("EXPERIMENT")
 	log.Printf("%s started...", hostname)
 
 	lock := sync.RWMutex{}
 	stats := Statistics{}
 	stats.Hostname = hostname
-	stats.ExperimentName = experiment
 
 	host := os.Getenv("GO_SERVICE_SERVICE_HOST")
 	port := os.Getenv("GO_SERVICE_SERVICE_PORT")

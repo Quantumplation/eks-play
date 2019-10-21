@@ -16,7 +16,10 @@ spec:
     spec:
       containers:
       - name: go-server
-        image: 098086232615.dkr.ecr.us-east-1.amazonaws.com/go-server:experiment-two
+        image: 098086232615.dkr.ecr.us-east-1.amazonaws.com/go-server:latest
+        env:
+        - name: EXPERIMENT
+          value: "experiment-3"
         livenessProbe:
           httpGet:
             path: /health
