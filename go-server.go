@@ -48,6 +48,14 @@ type Statistics struct {
 	TotalIncomingRequests int32
 }
 
+func dynamoDBService() *dynamodb.DynamoDB {
+	sess := session.Must(session.NewSession(
+		aws.NewConfig().WithRegion("us-east-1").WithLogLevel(aws.LogDebugWithRequestErrors),
+	))
+	svc := dynamodb.New(sess)
+	return svc
+}
+
 func updateStats(stats *Statistics, lock *sync.RWMutex) {
 	counter := 0
 	for {
@@ -61,10 +69,7 @@ func updateStats(stats *Statistics, lock *sync.RWMutex) {
 		log.Printf("%s", string(b))
 		if ENABLEDYNAMO && counter%10 == 0 {
 			log.Print("Saving...")
-			sess := session.Must(session.NewSession(
-				aws.NewConfig().WithRegion("us-east-1"),
-			))
-			svc := dynamodb.New(sess)
+			svc := dynamoDBService()
 			input := &dynamodb.PutItemInput{
 				Item:      av,
 				TableName: aws.String("eks-play-statistics"),
@@ -87,12 +92,7 @@ func recordError(host string, e error) {
 	log.Printf("Unrecognized error: %s", string(eb))
 	log.Print(fmt.Errorf("Unrecognized error: %w", e))
 	if ENABLEDYNAMO {
-
-		sess := session.Must(session.NewSession(
-			aws.NewConfig().WithRegion("us-east-1").WithLogLevel(aws.LogDebug),
-		))
-		svc := dynamodb.New(sess)
-
+		svc := dynamoDBService()
 		av, _ := dynamodbattribute.MarshalMap(e)
 		id, _ := uuid.NewRandom()
 
