@@ -89,7 +89,7 @@ func recordError(host string, e error) {
 	if ENABLEDYNAMO {
 
 		sess := session.Must(session.NewSession(
-			aws.NewConfig().WithRegion("us-east-1"),
+			aws.NewConfig().WithRegion("us-east-1").WithLogLevel(aws.LogDebugWithRequestRetries),
 		))
 		svc := dynamodb.New(sess)
 

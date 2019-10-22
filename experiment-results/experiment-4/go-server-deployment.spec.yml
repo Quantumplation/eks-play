@@ -5,7 +5,7 @@ metadata:
   labels:
     app: go-server
 spec:
-  replicas: 1
+  replicas: 5
   selector:
     matchLabels:
       app: go-server
@@ -16,10 +16,10 @@ spec:
     spec:
       containers:
       - name: go-server
-        image: 098086232615.dkr.ecr.us-east-1.amazonaws.com/go-server:experiment-three
+        image: 098086232615.dkr.ecr.us-east-1.amazonaws.com/go-server:experiment-four
         env:
         - name: EXPERIMENT
-          value: "experiment-3"
+          value: "experiment-4"
         livenessProbe:
           httpGet:
             path: /health
