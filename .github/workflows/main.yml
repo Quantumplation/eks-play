@@ -26,3 +26,5 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         uses: Ilshidur/action-discord@a7cda45617e36f767b67b6c69cbfa045641c8620
+        with:
+          args: 'eks-play image build finished'
