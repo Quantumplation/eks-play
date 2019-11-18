@@ -1,2 +1,2 @@
 TotalIncomingRequests,EOFErrors,ECONNREFUSEDErrors,TrueECONNRESETErrors,TotalOutgoingRequests,OutgoingNetworkErrors,ExperimentName,Hostname,SuccessfulOutgoingRequests,FailedOutgoingRequests,OutgoingUnknownErrors,OutgoingHTTPErrors,ForceClosedErrors,ECONNABORTEDErrors,LastUpdate,StartTime
-3814706,0,0,0,3814720,0,experiment-3,go-server-deployment-6cffd44bbb-r4twf,3813721,0,0,0,0,0,2019-10-21 03:18:05.485384093 +0000 UTC m=+1276.033001074,2019-10-21 02:57:50.456006378 +0000 UTC m=+61.003623311
+266402403,0,0,0,266402667,0,experiment-3,go-server-deployment-7675555745-fbsqr,266401787,0,0,0,0,0,2019-10-24 04:41:09.737249776 +0000 UTC m=+92086.127467052,2019-10-23 03:07:24.613001697 +0000 UTC m=+61.003218785
