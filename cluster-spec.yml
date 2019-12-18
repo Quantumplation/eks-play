@@ -3,14 +3,16 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: eks-play-2
+  name: eks-play
   region: us-east-1
-  version: '1.14'
+  version: '1.12'
 
 nodeGroups:
-  - name: workers-v2
-    minSize: 2
-    maxSize: 2
+  - name: workers
+    minSize: 1
+    maxSize: 1
+    ssh:
+      publicKeyPath: id_rsa.pub
     instancesDistribution:
       instanceTypes: ["m5.8xlarge", "m5.large"]
       onDemandBaseCapacity: 0
